@@ -1,2 +1,2 @@
-line one
+line B
 line two
