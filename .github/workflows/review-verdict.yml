@@ -1,0 +1,92 @@
+name: Review verdict status
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: number
+      head_sha:
+        description: Commit SHA to receive the status
+        required: true
+        type: string
+      verdict:
+        description: Review verdict
+        required: true
+        type: choice
+        options:
+          - MERGE
+          - CHANGES
+      reviewer_model:
+        description: Reviewer model name
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      pr_number:
+        required: true
+        type: number
+      head_sha:
+        required: true
+        type: string
+      verdict:
+        required: true
+        type: string
+      reviewer_model:
+        required: true
+        type: string
+
+permissions:
+  statuses: write
+
+concurrency:
+  group: review-verdict-${{ inputs.pr_number }}-${{ inputs.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  post-review-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post status for the supplied head SHA
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          VERDICT: ${{ inputs.verdict }}
+          REVIEWER_MODEL: ${{ inputs.reviewer_model }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const headSha = process.env.HEAD_SHA;
+            const verdict = process.env.VERDICT;
+            const reviewerModel = process.env.REVIEWER_MODEL.trim();
+
+            if (!Number.isInteger(prNumber) || prNumber < 1) {
+              throw new Error('pr_number must be a positive integer');
+            }
+            if (!/^[0-9a-f]{40}$/i.test(headSha)) {
+              throw new Error('head_sha must be a full 40-character commit SHA');
+            }
+            if (!['MERGE', 'CHANGES'].includes(verdict)) {
+              throw new Error('verdict must be MERGE or CHANGES');
+            }
+            if (!reviewerModel) {
+              throw new Error('reviewer_model must not be empty');
+            }
+
+            const description = `PR #${prNumber} ${verdict} by ${reviewerModel}`;
+            if (description.length > 140) {
+              throw new Error('reviewer_model is too long for a commit status description');
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: headSha,
+              state: verdict === 'MERGE' ? 'success' : 'failure',
+              context: 'review/verdict',
+              description,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
+            });
