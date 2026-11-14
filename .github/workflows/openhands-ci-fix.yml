@@ -24,7 +24,7 @@ permissions:
 jobs:
   fix:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'failure'
-    uses: JacobPEvans/.github-ai/.github/workflows/cc-ci-fix.yml@b645e0a957bd5bc39040ef6f1acfea74ed40808b # feat/openhands-agent
+    uses: JacobPEvans/.github-ai/.github/workflows/cc-ci-fix.yml@72a41f6b416a8048d42c040ed1c519d961b71280 # feat/openhands-agent
     with:
       # Hosted runners cannot reach the model router; the review pool can.
       runner_label: review
