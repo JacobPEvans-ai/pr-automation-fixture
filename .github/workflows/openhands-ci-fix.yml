@@ -30,6 +30,7 @@ jobs:
       runner_label: review
       agent: openhands
       local_model: medium
+      daily_run_limit: "20"
       ci_structure: "Markdown Lint (markdownlint over every Markdown file in the repository)"
       failure_conclusion: ${{ github.event_name == 'workflow_dispatch' && 'failure' || '' }}
       failure_run_id: ${{ inputs.failure_run_id }}
